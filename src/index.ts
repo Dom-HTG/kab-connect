@@ -3,18 +3,10 @@ import * as bodyParser from 'body-parser';
 import { Request, Response, Application } from 'express';
 import dotenv from 'dotenv';
 // import twilio from 'twilio'; 
-import { TwilioClient } from './twilio-client';
+import { TwilioClient } from './whatsapp-client';
 import { AppConfig } from './config';
+import { TelegramClient } from './telegram-client';
 dotenv.config();
-
-// const conf = {
-//     port: process.env.PORT || 3221,
-//     twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || '',
-//     twilioAuthToken: process.env.TWILIO_AUTH_TOKEN || '',   
-//     twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER || ''
-// };
-
-// const twilioClient = twilio(conf.twilioAccountSid, conf.twilioAuthToken);
 
 const app: Application = express();
 
@@ -24,9 +16,14 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Init App config.
 const config = new AppConfig();
+const appConfig = config.serveConfig(); // configuration object to be passed around the entire application.
 
 // Init twilio client with app config.
-const twilioClient = new TwilioClient(config.serveConfig());
+const twilioClient = new TwilioClient(appConfig);
+
+// Init telegram client with app config.
+const telegramClient = new TelegramClient(appConfig);
+telegramClient.initWebhook(app, '/client', appConfig.appUrl); //start the telegram client.
 
 // Webhook to handle incoming messages from whatsapp.
 app.post('/client', (req: Request, res: Response) => {

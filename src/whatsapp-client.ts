@@ -1,4 +1,4 @@
-import { AppConfig, Configs } from "./config";
+import { Configs } from "./config";
 
 // interface Config {
 //     port: string;
@@ -20,10 +20,10 @@ export class TwilioClient {
   private client: any;
 
   constructor(conf: Configs) {
-    this.accountSid = conf.twilioAccountSid;
-    this.authToken = conf.twilioAuthToken;
+    this.accountSid = conf.twilio.twilioAccountSid;
+    this.authToken = conf.twilio.twilioAuthToken;
     this.client = require('twilio')(this.accountSid, this.authToken);
-  }
+  };
 
   /**
     * Send a WhatsApp message
@@ -33,7 +33,7 @@ export class TwilioClient {
     try {
       await this.client.messages.create({
         to,
-        from: conf.twilioPhoneNumber,
+        from: conf.twilio.twilioPhoneNumber,
         body,
       });
     } catch (error: any) {
