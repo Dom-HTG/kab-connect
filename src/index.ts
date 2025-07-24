@@ -3,9 +3,11 @@ import * as bodyParser from 'body-parser';
 import { Request, Response, Application } from 'express';
 import dotenv from 'dotenv';
 // import twilio from 'twilio'; 
-import { TwilioClient } from './whatsapp-client';
-import { AppConfig } from './config';
-import { TelegramClient } from './telegram-client';
+import { TwilioClient } from './client/whatsapp-client';
+import { AppConfig } from './config/config';
+import { TelegramClient } from './client/telegram-client';
+import { PaymentService } from './payment/paymentService';
+import { PaymentController } from './payment/paymentController';
 dotenv.config();
 
 const app: Application = express();
@@ -17,6 +19,14 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Init App config.
 const config = new AppConfig();
 const appConfig = config.serveConfig(); // configuration object to be passed around the entire application.
+
+// DI for payment routes.
+const paymentService = new PaymentService(appConfig);
+const paymentController = new PaymentController(paymentService);
+
+// Register payment routes.
+const paymentRouter = paymentController.registerRoutes(express.Router());
+app.use('/payment', paymentRouter);
 
 // Init twilio client with app config.
 const twilioClient = new TwilioClient(appConfig);

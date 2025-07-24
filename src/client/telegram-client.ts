@@ -1,5 +1,5 @@
 import { Telegraf, Context, Markup } from 'telegraf';
-import { Configs } from './config';
+import { Configs } from '../config/config';
 import { Application } from 'express';
 
 export class TelegramClient {
