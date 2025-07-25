@@ -20,6 +20,13 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const config = new AppConfig();
 const appConfig = config.serveConfig(); // configuration object to be passed around the entire application.
 
+// Init twilio client with app config.
+const twilioClient = new TwilioClient(appConfig);
+
+// Init telegram client with app config.
+const telegramClient = new TelegramClient(appConfig);
+telegramClient.initWebhook(app, '/client', appConfig.appUrl); //start the telegram client.
+
 // DI for payment routes.
 const paymentService = new PaymentService(appConfig);
 const paymentController = new PaymentController(paymentService);
@@ -27,13 +34,6 @@ const paymentController = new PaymentController(paymentService);
 // Register payment routes.
 const paymentRouter = paymentController.registerRoutes(express.Router());
 app.use('/payment', paymentRouter);
-
-// Init twilio client with app config.
-const twilioClient = new TwilioClient(appConfig);
-
-// Init telegram client with app config.
-const telegramClient = new TelegramClient(appConfig);
-telegramClient.initWebhook(app, '/client', appConfig.appUrl); //start the telegram client.
 
 // Webhook to handle incoming messages from whatsapp.
 app.post('/client', (req: Request, res: Response) => {
@@ -75,4 +75,4 @@ app.post('/client', (req: Request, res: Response) => {
    };
 });
 
-app.listen(config.port, () => { console.log(`Server is running on port ${config.port}`) });
+app.listen(config.port, () => { console.log(`✅ Server is running on port ${config.port}...`) });

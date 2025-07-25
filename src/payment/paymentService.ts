@@ -18,6 +18,7 @@ export class PaymentService {
         if (!this.paystackSecretKey) {
             throw new Error('Paystack secret key is not set in the configuration.');
         };
+        console.log("✅ Payment Service is ready to make requests...");
     };
 
     mountHeaders() {
@@ -53,6 +54,7 @@ export class PaymentService {
             },
         };
 
+        console.log("✅ Payment initialized...");
         return responseData;
 
 
@@ -69,7 +71,7 @@ export class PaymentService {
 
         // Check if the transaction was successful.
         if (response.data.status && response.data.data.status === 'success') {
-            console.log('Transaction verified successfully:', response.data.data);
+            console.log('✅ Transaction verified successfully:', response.data.data);
         } else {
             throw new Error('Transaction verification failed.');
         }

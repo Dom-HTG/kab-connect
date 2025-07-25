@@ -22,7 +22,7 @@ export class TelegramClient {
         // Register webhook
         this.bot.telegram.setWebhook(`${webhookUrl}${webhookPath}`)
         .then(() => {
-            console.log('Webhook configured with Telegram successfully')
+            console.log('✅ Webhook configured with Telegram successfully...');
         })
         .catch((e: any) => {
             console.error(`Failure to set Telegram message: ${e.message}`);
