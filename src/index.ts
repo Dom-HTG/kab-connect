@@ -25,7 +25,14 @@ const twilioClient = new TwilioClient(appConfig);
 
 // Init telegram client with app config.
 const telegramClient = new TelegramClient(appConfig);
-telegramClient.initWebhook(app, '/client', appConfig.appUrl); //start the telegram client.
+
+if (process.env.NODE_ENV === 'production') {
+    telegramClient.initWebhook(app, '/client', appConfig.appUrl); //start the telegram client with webhook.
+    console.log('✅ Telegram client is running in production mode...');
+}else {
+    telegramClient.initBot(); // start the telegram client in development mode.
+    console.log('✅ Telegram client is running in development mode...');
+};
 
 // DI for payment routes.
 const paymentService = new PaymentService(appConfig);
