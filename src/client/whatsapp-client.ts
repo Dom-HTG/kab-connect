@@ -1,4 +1,4 @@
-import { Configs } from "./config";
+import { Configs } from "../config/config";
 
 // interface Config {
 //     port: string;

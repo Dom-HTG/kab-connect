@@ -3,9 +3,11 @@ import * as bodyParser from 'body-parser';
 import { Request, Response, Application } from 'express';
 import dotenv from 'dotenv';
 // import twilio from 'twilio'; 
-import { TwilioClient } from './whatsapp-client';
-import { AppConfig } from './config';
-import { TelegramClient } from './telegram-client';
+import { TwilioClient } from './client/whatsapp-client';
+import { AppConfig } from './config/config';
+import { TelegramClient } from './client/telegram-client';
+import { PaymentService } from './payment/paymentService';
+import { PaymentController } from './payment/paymentController';
 dotenv.config();
 
 const app: Application = express();
@@ -24,6 +26,14 @@ const twilioClient = new TwilioClient(appConfig);
 // Init telegram client with app config.
 const telegramClient = new TelegramClient(appConfig);
 telegramClient.initWebhook(app, '/client', appConfig.appUrl); //start the telegram client.
+
+// DI for payment routes.
+const paymentService = new PaymentService(appConfig);
+const paymentController = new PaymentController(paymentService);
+
+// Register payment routes.
+const paymentRouter = paymentController.registerRoutes(express.Router());
+app.use('/payment', paymentRouter);
 
 // Webhook to handle incoming messages from whatsapp.
 app.post('/client', (req: Request, res: Response) => {
@@ -65,4 +75,4 @@ app.post('/client', (req: Request, res: Response) => {
    };
 });
 
-app.listen(config.port, () => { console.log(`Server is running on port ${config.port}`) });
+app.listen(config.port, () => { console.log(`✅ Server is running on port ${config.port}...`) });
