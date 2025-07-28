@@ -1,9 +1,14 @@
 export interface Configs {
-    port: string;
-    appUrl: string;
+    server: ServerConfig
     telegram: TelegramConfig;
     twilio: TwilioConfig;
-    paystack: PaystackConfig
+    paystack: PaystackConfig;
+    db: DbConfig;
+};
+
+export interface ServerConfig {
+    port: string;
+    appUrl: string;
 };
 
 interface TelegramConfig {
@@ -21,10 +26,16 @@ interface PaystackConfig {
     paystackSecretKey: string;
 };
 
+interface DbConfig {
+    connString: string;
+    dbName: string;
+};
+
 export class AppConfig {
-    // Application config.
+    // Server config.
     public readonly port: string;
     public readonly appUrl: string;
+
 
     // Twilio config.
     public readonly twilioAccountSid: string;
@@ -38,6 +49,10 @@ export class AppConfig {
     public readonly paystackBaseUrl: string;
     public readonly paystackSecretKey: string;
 
+    // Database config.
+    public readonly dbConnString: string;
+    public readonly dbName: string;
+
     constructor() {
         // Load environment variables when the class is instantiated.
         this.port = this.getenv('PORT');
@@ -48,6 +63,8 @@ export class AppConfig {
         this.twilioPhoneNumber = this.getenv('TWILIO_PHONE_NUMBER');
         this.paystackBaseUrl = this.getenv('PAYSTACK_BASE_URL');
         this.paystackSecretKey = this.getenv('PAYSTACK_SECRET_KEY');
+        this.dbConnString = this.getenv('DB_CONN_STRING');
+        this.dbName = this.getenv('DB_NAME');
     }
 
     private getenv(key: string): string {
@@ -60,8 +77,10 @@ export class AppConfig {
 
     public serveConfig(): Configs {
         return {
-            port: this.port,
-            appUrl: this.appUrl,
+            server: {
+                port: this.port,
+                appUrl: this.appUrl,
+            },
             telegram: {
                 telegramToken: this.telegramToken,
             },
@@ -74,6 +93,10 @@ export class AppConfig {
                 paystackBaseUrl: this.paystackBaseUrl,
                 paystackSecretKey: this.paystackSecretKey,
             },
+            db: {
+                connString: this.dbConnString,
+                dbName: this.dbName
+            }
         };
     };
 };

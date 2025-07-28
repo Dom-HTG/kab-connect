@@ -4,15 +4,19 @@ import { Configs } from '../config/config';
 import { Application } from 'express';
 import axios from 'axios';
 import { User } from '../store/userModel';
+import { MongoService } from '../store/database';
 
 export class TelegramClient {
   private bot: Telegraf<Context>;
+  private dbClient: MongoService;
 
-  constructor(public readonly config: Configs) {
+  constructor(public readonly config: Configs, dbClient: MongoService) {
     this.bot = new Telegraf(config.telegram.telegramToken);
+    this.dbClient = dbClient;
     console.log('Launching Telegram Bot...');
   }
 
+  // Register commands and actions for the bot.
   private registerCommands() {
     this.bot.command('start', this.startCommand());
     this.bot.command('buy', this.payCommand());
@@ -27,14 +31,20 @@ export class TelegramClient {
     console.log('✅ Telegram commands registered successfully...');
   }
 
+  // Launch bot with polling. [development]
   public initBot() {
     this.registerCommands();
     this.bot.launch()
       .then(() => console.log('✅ Telegram bot is running...'))
       .catch((e: any) => console.error(`❌ Failed to launch bot: ${e.message}`));
-  }
 
-  public initWebhook(app: Application, webhookPath: string, webhookUrl: string): Telegraf<Context> {
+      // ---- HANDLE GRACEFUL SHUTDOWN ---- //
+      process.once('SIGINT', () => this.stopBot('SIGINT'));
+      process.once('SIGTERM', () => this.stopBot('SIGTERM'));
+  };
+
+  // Launch bot with webhook. [production]
+  public initWebhook(app: Application, webhookPath: string, webhookUrl: string) {
     this.registerCommands();
 
     this.bot.telegram.setWebhook(`${webhookUrl}${webhookPath}`)
@@ -42,8 +52,23 @@ export class TelegramClient {
       .catch((e: any) => console.error(`❌ Failed to set webhook: ${e.message}`));
 
     app.use(webhookPath, this.bot.webhookCallback(webhookPath));
-    return this.bot;
-  }
+
+    // ---- HANDLE GRACEFUL SHUTDOWN ---- //
+    process.once('SIGINT', () => this.stopBot('SIGINT'));
+    process.once('SIGTERM', () => this.stopBot('SIGTERM'));
+  };
+
+  // ---- STOP BOT GRACEFULLY---- //
+    public stopBot(signal: string) {
+        console.log(`Received ${signal}. Stopping Telegram bot...`);
+        this.bot.stop('Bot stopped by user');
+        console.log('✅ Telegram bot stopped gracefully.');
+
+        // disconnect database.
+        this.dbClient.disconnect();
+
+        process.exit(0);
+    }
 
   // ---- COMMANDS ---- //
 
@@ -154,7 +179,7 @@ export class TelegramClient {
     const amount = 500 * 100; // in kobo
 
     try {
-      const response = await axios.post(`${this.config.appUrl}/payment/init`, {
+      const response = await axios.post(`${this.config.server.appUrl}/payment/init`, {
         email,
         amount,
         metadata: { telegramId },
