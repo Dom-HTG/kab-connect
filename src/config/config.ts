@@ -55,7 +55,7 @@ export class AppConfig {
 
     constructor() {
         // Load environment variables when the class is instantiated.
-        this.port = this.getenv('PORT');
+        this.port = this.getenv('APP_PORT');
         this.appUrl = this.getenv('APP_URL');
         this.telegramToken = this.getenv('TELEGRAM_TOKEN');
         this.twilioAccountSid = this.getenv('TWILIO_ACCOUNT_SID');
