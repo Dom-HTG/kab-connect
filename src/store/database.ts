@@ -1,33 +1,32 @@
-import mongoose from 'mongoose';
+import { Pool } from 'pg';
 import { Configs } from '../config/config';
 
-export class MongoService {
-  private uri: string;
-  private dbName: string;
+export class PostgresService {
+  private pool: Pool;
 
   constructor(config: Configs) {
-    this.uri = config.db.connString;
-    this.dbName = config.db.dbName;
+    this.pool = new Pool({
+      connectionString: config.db.connString,
+      database: config.db.dbName,
+    });
   }
 
   public async connect(): Promise<void> {
     try {
-      await mongoose.connect(this.uri, {
-        dbName: this.dbName
-      });
-      console.log('✅ MongoDB connected successfully.');
+      await this.pool.connect();
+      console.log('✅ PostgreSQL connected successfully.');
     } catch (err: any) {
-      console.error('❌ MongoDB connection error:', err.message);
+      console.error('❌ PostgreSQL connection error:', err.message);
       process.exit(1);
     }
   }
 
   public async disconnect(): Promise<void> {
     try {
-      await mongoose.disconnect();
-      console.log('🛑 MongoDB disconnected.');
+      await this.pool.end();
+      console.log('🛑 PostgreSQL disconnected.');
     } catch (err: any) {
-      console.error('❌ Error during MongoDB disconnection:', err.message);
+      console.error('❌ Error during PostgreSQL disconnection:', err.message);
     }
   }
 }

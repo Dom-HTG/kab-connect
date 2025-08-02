@@ -9,7 +9,8 @@ import { TelegramClient } from './client/telegram-client';
 import { PaymentService } from './payment/paymentService';
 import { PaymentController } from './payment/paymentController';
 // import { Context, Telegraf } from 'telegraf';
-import { MongoService } from './store/database';
+// import { MongoService } from './store/database';
+import { PostgresService } from './store/database';
 dotenv.config();
 
 const app: Application = express();
@@ -23,14 +24,14 @@ const config = new AppConfig();
 const appConfig = config.serveConfig(); // configuration object to be passed around the entire application.
 
 // Init database with app config.
-const dbClient = new MongoService(appConfig);
-dbClient.connect();
+// const dbClient = new PostgresService(appConfig);
+// dbClient.connect();
 
 // Init twilio client with app config.
 const twilioClient = new TwilioClient(appConfig);
 
 // Init telegram client with app config.
-const telegramClient = new TelegramClient(appConfig, dbClient);
+const telegramClient = new TelegramClient(appConfig);
 
 if (process.env.NODE_ENV === 'production') {
     telegramClient.initWebhook(app, '/client', appConfig.server.appUrl); //start the telegram client with webhook.

@@ -4,15 +4,15 @@ import { Configs } from '../config/config';
 import { Application } from 'express';
 import axios from 'axios';
 import { User } from '../store/userModel';
-import { MongoService } from '../store/database';
+// import { MongoService } from '../store/database';
 
 export class TelegramClient {
   private bot: Telegraf<Context>;
-  private dbClient: MongoService;
+  // private dbClient: MongoService;
 
-  constructor(public readonly config: Configs, dbClient: MongoService) {
+  constructor(public readonly config: Configs) {
     this.bot = new Telegraf(config.telegram.telegramToken);
-    this.dbClient = dbClient;
+    // this.dbClient = dbClient;
     console.log('Launching Telegram Bot...');
   }
 
@@ -65,7 +65,7 @@ export class TelegramClient {
         console.log('✅ Telegram bot stopped gracefully.');
 
         // disconnect database.
-        this.dbClient.disconnect();
+        // this.dbClient.disconnect();
 
         process.exit(0);
     }
