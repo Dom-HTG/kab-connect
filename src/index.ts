@@ -10,7 +10,7 @@ import { PaymentService } from './payment/paymentService';
 import { PaymentController } from './payment/paymentController';
 // import { Context, Telegraf } from 'telegraf';
 // import { MongoService } from './store/database';
-import { PostgresService } from './store/database';
+// import { PostgresService } from './store/database';
 dotenv.config();
 
 const app: Application = express();
