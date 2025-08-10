@@ -75,11 +75,11 @@ app.post('/client', (req: Request, res: Response) => {
         const buyText = `Thank you for your interest! Click the link below to complete your purchase: https://xxxxxxxxxxx`;
 
         if (body.toLowerCase() === 'buy') {
-            twilioClient.sendMessage(from, buyText, config.serveConfig());
+            twilioClient.sendMessage(from, buyText, appConfig);
         } else if (body.toLowerCase() === 'help') {
-            twilioClient.sendMessage(from, helpText, config.serveConfig());
+            twilioClient.sendMessage(from, helpText, appConfig);
         } else {
-            twilioClient.sendMessage(from, onboardText, config.serveConfig());
+            twilioClient.sendMessage(from, onboardText, appConfig);
         };
    } catch (e: any) {
     res.status(400).json({
@@ -89,4 +89,4 @@ app.post('/client', (req: Request, res: Response) => {
    };
 });
 
-app.listen(config.port, () => { console.log(`✅ Server is running on port ${config.port}...`) });
+app.listen(appConfig.server.port, () => { console.log(`✅ Server is running on port ${config.port}...`) });
