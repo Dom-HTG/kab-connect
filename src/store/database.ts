@@ -1,32 +1,42 @@
-// import { Pool } from 'pg';
-// import { Configs } from '../config/config';
+import path from 'path';
+import { DataSource } from 'typeorm';
+import { Configs } from '../config/config';
+import { User } from './userEntity';
 
-// export class PostgresService {
-//   private pool: Pool;
+export class PostgresService {
+  private dataSource: DataSource;
 
-//   constructor(config: Configs) {
-//     this.pool = new Pool({
-//       connectionString: config.db.connString,
-//       database: config.db.dbName,
-//     });
-//   }
+  constructor(config: Configs) {
+    this.dataSource = new DataSource({
+      type: 'postgres',
+      url: config.db.connString,
+      synchronize: false,
+      logging: ['error', 'warn'],
+      entities: [path.join(__dirname, '../store/userEntity.{ts,js}')],
+    });
+  }
 
-//   public async connect(): Promise<void> {
-//     try {
-//       await this.pool.connect();
-//       console.log('✅ PostgreSQL connected successfully.');
-//     } catch (err: any) {
-//       console.error('❌ PostgreSQL connection error:', err.message);
-//       process.exit(1);
-//     }
-//   }
+  public get getRepository() {
+    return this.dataSource.getRepository(User);
+  }
 
-//   public async disconnect(): Promise<void> {
-//     try {
-//       await this.pool.end();
-//       console.log('🛑 PostgreSQL disconnected.');
-//     } catch (err: any) {
-//       console.error('❌ Error during PostgreSQL disconnection:', err.message);
-//     }
-//   }
-// }
+  public async connect(): Promise<void> {
+    try {
+        await this.dataSource.initialize();
+        console.log('✅ PostgreSQL connected successfully...');
+    } catch (error: any) {
+        console.error('❌ Error connecting to PostgreSQL:', error.message);
+        process.exit(1);
+    }
+  }
+
+  public async disconnect(): Promise<void> {
+    try {
+        await this.dataSource.destroy();
+        console.log('✅ PostgreSQL disconnected successfully...');
+    } catch (error: any) {
+        console.error('❌ Error disconnecting from PostgreSQL:', error.message);
+        process.exit(1);   
+    }
+  }
+};

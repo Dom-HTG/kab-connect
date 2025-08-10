@@ -1,77 +1,69 @@
 import { Telegraf, Context, Markup } from 'telegraf';
-import {  message } from 'telegraf/filters';
+import { message } from 'telegraf/filters';
 import { Configs } from '../config/config';
 import { Application } from 'express';
 import axios from 'axios';
-import { User } from '../store/userModel';
-// import { MongoService } from '../store/database';
+import { PostgresService } from '../store/database';
 
 export class TelegramClient {
   private bot: Telegraf<Context>;
-  // private dbClient: MongoService;
 
-  constructor(public readonly config: Configs) {
+  constructor(
+    public readonly config: Configs,
+    private readonly dbClient: PostgresService
+  ) {
     this.bot = new Telegraf(config.telegram.telegramToken);
-    // this.dbClient = dbClient;
     console.log('Launching Telegram Bot...');
   }
 
-  // Register commands and actions for the bot.
+  /** Register bot commands and actions */
   private registerCommands() {
     this.bot.command('start', this.startCommand());
-    this.bot.command('buy', this.payCommand());
+    this.bot.command('buy', this.buyCommand());
     this.bot.command('help', this.helpCommand());
 
     this.bot.action('pay', this.payAction());
     this.bot.action('generate_login', this.generateLoginAction());
 
-    // this.bot.on('text', this.handleEmailReply());
     this.bot.on(message('text'), this.handleEmailReply());
 
     console.log('✅ Telegram commands registered successfully...');
   }
 
-  // Launch bot with polling. [development]
+  /** Launch bot with polling */
   public initBot() {
     this.registerCommands();
     this.bot.launch()
       .then(() => console.log('✅ Telegram bot is running...'))
-      .catch((e: any) => console.error(`❌ Failed to launch bot: ${e.message}`));
+      .catch((e) => console.error(`❌ Failed to launch bot: ${e.message}`));
 
-      // ---- HANDLE GRACEFUL SHUTDOWN ---- //
-      process.once('SIGINT', () => this.stopBot('SIGINT'));
-      process.once('SIGTERM', () => this.stopBot('SIGTERM'));
-  };
+    process.once('SIGINT', () => this.stopBot('SIGINT'));
+    process.once('SIGTERM', () => this.stopBot('SIGTERM'));
+  }
 
-  // Launch bot with webhook. [production]
+  /** Launch bot with webhook (for production) */
   public initWebhook(app: Application, webhookPath: string, webhookUrl: string) {
     this.registerCommands();
 
     this.bot.telegram.setWebhook(`${webhookUrl}${webhookPath}`)
       .then(() => console.log('✅ Webhook configured successfully...'))
-      .catch((e: any) => console.error(`❌ Failed to set webhook: ${e.message}`));
+      .catch((e) => console.error(`❌ Failed to set webhook: ${e.message}`));
 
     app.use(webhookPath, this.bot.webhookCallback(webhookPath));
 
-    // ---- HANDLE GRACEFUL SHUTDOWN ---- //
     process.once('SIGINT', () => this.stopBot('SIGINT'));
     process.once('SIGTERM', () => this.stopBot('SIGTERM'));
-  };
+  }
 
-  // ---- STOP BOT GRACEFULLY---- //
-    public stopBot(signal: string) {
-        console.log(`Received ${signal}. Stopping Telegram bot...`);
-        this.bot.stop('Bot stopped by user');
-        console.log('✅ Telegram bot stopped gracefully.');
+  /** Graceful shutdown */
+  private stopBot(signal: string) {
+    console.log(`Received ${signal}. Stopping Telegram bot...`);
+    this.bot.stop('Bot stopped by user');
+    console.log('✅ Telegram bot stopped gracefully.');
+    process.exit(0);
+  }
 
-        // disconnect database.
-        // this.dbClient.disconnect();
-
-        process.exit(0);
-    }
-
-  // ---- COMMANDS ---- //
-
+  /** Commands */
   private startCommand() {
     return async (ctx: Context) => {
       await ctx.reply(
@@ -80,7 +72,7 @@ export class TelegramClient {
       );
 
       await ctx.reply(
-        `To continue, you’ll pay through our secure platform using a *bank transfer* or *debit card*. Once payment is complete, you’ll receive a *login* to get online.`,
+        `To continue, pay via *bank transfer* or *debit card*. Once payment is complete, you’ll receive your *login* to get online.`,
         Markup.inlineKeyboard([
           Markup.button.callback('🚀 Proceed to Payment', 'pay'),
         ])
@@ -88,7 +80,7 @@ export class TelegramClient {
     };
   }
 
-  private payCommand() {
+  private buyCommand() {
     return async (ctx: Context) => {
       await ctx.reply('To start your purchase, use the /start command and tap "Proceed to Payment".');
     };
@@ -100,8 +92,7 @@ export class TelegramClient {
     };
   }
 
-  // ---- ACTIONS ---- //
-
+  /** Actions */
   private payAction() {
     return async (ctx: Context) => {
       await ctx.answerCbQuery();
@@ -112,62 +103,42 @@ export class TelegramClient {
         return;
       }
 
-      // Check if user already exists
-      const existingUser = await User.findOne({ telegramId });
+      const existingUser = await this.dbClient.getRepository.findOne({ where: { telegramId } });
 
       if (!existingUser) {
-        // Ask for their email only once
-        await ctx.reply(
-          '📧 Please enter your email address to proceed with payment:',
-          Markup.forceReply()
-        );
-
-        // Save new user with empty email
-        const newUser = new User({ telegramId, email: '', isActive: false });
-        await newUser.save();
+        await ctx.reply('📧 Please enter your email address to proceed with payment:', Markup.forceReply());
+        const newUser = this.dbClient.getRepository.create({ telegramId, email: '' });
+        await this.dbClient.getRepository.save(newUser);
         console.log(`✅ New user created with Telegram ID: ${telegramId}`);
+      } else if (existingUser.email) {
+        await this.initiatePayment(ctx, existingUser.email);
       } else {
-        // If user exists and has email, proceed to payment immediately
-        if (existingUser.email) {
-          await this.initiatePayment(ctx, existingUser.email);
-        } else {
-          // Ask for email again if missing (edge case)
-          await ctx.reply(
-            '📧 Please enter your email address to proceed with payment:',
-            Markup.forceReply()
-          );
-        }
+        await ctx.reply('📧 Please enter your email address to proceed with payment:', Markup.forceReply());
       }
     };
   }
 
   private handleEmailReply() {
     return async (ctx: Context) => {
-      if (!ctx.message || typeof ctx.message !== 'object' || !('text' in ctx.message)) {
+      if (!ctx.message || typeof (ctx.message as any).text !== 'string') {
       await ctx.reply('❌ Please send a text message.');
       return;
     }
 
-    const text = ctx.message.text.trim();
-    const telegramId = ctx.from?.id;
+      const text = (ctx.message as any).text.trim();
+      const telegramId = ctx.from?.id;
+      if (!telegramId) return;
 
-    if (!telegramId || !text) return;
-
-      const user = await User.findOne({ telegramId });
-
-      // Proceed only if user exists and has no email set yet
+      const user = await this.dbClient.getRepository.findOne({ where: { telegramId } });
       if (user && !user.email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
         if (!emailRegex.test(text)) {
           await ctx.reply('❌ Invalid email. Please enter a valid email address.');
           return;
         }
 
-        // Save email and continue to payment
         user.email = text;
-        await user.save();
-
+        await this.dbClient.getRepository.save(user);
         await ctx.reply('✅ Email saved! Generating payment link...');
         await this.initiatePayment(ctx, text);
       }
@@ -176,29 +147,25 @@ export class TelegramClient {
 
   private async initiatePayment(ctx: Context, email: string) {
     const telegramId = ctx.from?.id;
-    const amount = 500 * 100; // in kobo
+    const amount = 500 * 100;
 
     try {
-      const response = await axios.post(`${this.config.server.appUrl}/payment/init`, {
+      const { data } = await axios.post(`${this.config.server.appUrl}/payment/init`, {
         email,
         amount,
         metadata: { telegramId },
       });
 
-      const result = response.data;
-
-      if (result.status === 'success') {
-        const link = result.data.authorization_url;
-
+      if (data.status === 'success') {
         await ctx.reply(
           `💳 Click below to complete your ₦500 payment:`,
           Markup.inlineKeyboard([
-            Markup.button.url('🚀 Pay Now', link),
+            Markup.button.url('🚀 Pay Now', data.data.authorization_url),
             Markup.button.callback('✅ I’ve Paid, Generate Login', 'generate_login'),
           ])
         );
       } else {
-        await ctx.reply(`❌ Payment init failed: ${result.message}`);
+        await ctx.reply(`❌ Payment init failed: ${data.message}`);
       }
     } catch (e: any) {
       console.error(`❌ Payment error: ${e.message}`);
@@ -209,9 +176,8 @@ export class TelegramClient {
   private generateLoginAction() {
     return async (ctx: Context) => {
       await ctx.answerCbQuery();
-
-      const username = `kab_${Math.random().toString(36).substring(2, 6)}`;
-      const password = Math.random().toString(36).substring(2, 8);
+      const username = `kab_${Math.random().toString(36).slice(2, 6)}`;
+      const password = Math.random().toString(36).slice(2, 8);
 
       await ctx.reply(
         `🔐 *Your Wi-Fi Login*\n\n*Username:* \`${username}\`\n*Password:* \`${password}\`\n\nUse these credentials to log into the Kab Connect Wi-Fi network. Enjoy!`,

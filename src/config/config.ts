@@ -3,7 +3,7 @@ export interface Configs {
     telegram: TelegramConfig;
     twilio: TwilioConfig;
     paystack: PaystackConfig;
-    // db: DbConfig;
+    db: DbConfig;
 };
 
 export interface ServerConfig {
@@ -50,8 +50,8 @@ export class AppConfig {
     public readonly paystackSecretKey: string;
 
     // Database config.
-    // public readonly dbConnString: string;
-    // public readonly dbName: string;
+    public readonly dbConnString: string;
+    public readonly dbName: string;
 
     constructor() {
         // Load environment variables when the class is instantiated.
@@ -63,8 +63,8 @@ export class AppConfig {
         this.twilioPhoneNumber = this.getenv('TWILIO_PHONE_NUMBER');
         this.paystackBaseUrl = this.getenv('PAYSTACK_BASE_URL');
         this.paystackSecretKey = this.getenv('PAYSTACK_SECRET_KEY');
-        // this.dbConnString = this.getenv('DB_CONN_STRING');
-        // this.dbName = this.getenv('DB_NAME');
+        this.dbConnString = this.getenv('DB_CONN_STRING');
+        this.dbName = this.getenv('DB_NAME');
     }
 
     private getenv(key: string): string {
@@ -93,10 +93,10 @@ export class AppConfig {
                 paystackBaseUrl: this.paystackBaseUrl,
                 paystackSecretKey: this.paystackSecretKey,
             },
-            // db: {
-                // connString: this.dbConnString,
-                // dbName: this.dbName
-            // }
+            db: {
+                connString: this.dbConnString,
+                dbName: this.dbName
+            }
         };
     };
 };

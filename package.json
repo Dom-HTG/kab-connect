@@ -18,8 +18,10 @@
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
     "telegraf": "^4.16.3",
-    "twilio": "^5.7.3"
+    "twilio": "^5.7.3",
+    "typeorm": "^0.3.25"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",
