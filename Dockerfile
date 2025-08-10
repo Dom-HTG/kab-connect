@@ -30,7 +30,7 @@ COPY --from=builder /app/dist ./dist
 # Set production environment
 ENV NODE_ENV=production
 
-EXPOSE 8081
+EXPOSE 8080
 
 # Run the compiled app
 CMD ["node", "dist/index.js"]
