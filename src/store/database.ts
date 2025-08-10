@@ -1,4 +1,3 @@
-import path from 'path';
 import { DataSource } from 'typeorm';
 import { Configs } from '../config/config';
 import { User } from './userEntity';
@@ -10,9 +9,12 @@ export class PostgresService {
     this.dataSource = new DataSource({
       type: 'postgres',
       url: config.db.connString,
+      ssl: { 
+        rejectUnauthorized: process.env.NODE_ENV === 'production' ? false : true
+      },
       synchronize: false,
       logging: ['error', 'warn'],
-      entities: [path.join(__dirname, '../store/userEntity.{ts,js}')],
+      entities: [ User ],
     });
   }
 

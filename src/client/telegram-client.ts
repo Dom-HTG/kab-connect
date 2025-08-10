@@ -36,9 +36,6 @@ export class TelegramClient {
     this.bot.launch()
       .then(() => console.log('✅ Telegram bot is running...'))
       .catch((e) => console.error(`❌ Failed to launch bot: ${e.message}`));
-
-    process.once('SIGINT', () => this.stopBot('SIGINT'));
-    process.once('SIGTERM', () => this.stopBot('SIGTERM'));
   }
 
   /** Launch bot with webhook (for production) */
@@ -50,17 +47,13 @@ export class TelegramClient {
       .catch((e) => console.error(`❌ Failed to set webhook: ${e.message}`));
 
     app.use(webhookPath, this.bot.webhookCallback(webhookPath));
-
-    process.once('SIGINT', () => this.stopBot('SIGINT'));
-    process.once('SIGTERM', () => this.stopBot('SIGTERM'));
   }
 
-  /** Graceful shutdown */
-  private stopBot(signal: string) {
-    console.log(`Received ${signal}. Stopping Telegram bot...`);
-    this.bot.stop('Bot stopped by user');
+  /** Graceful shutdown (no process.exit here) */
+  public stopBot(reason?: string) {
+    console.log(`Stopping Telegram bot... ${reason ? `Reason: ${reason}` : ''}`);
+    this.bot.stop(reason || 'Bot stopped');
     console.log('✅ Telegram bot stopped gracefully.');
-    process.exit(0);
   }
 
   /** Commands */
@@ -121,9 +114,9 @@ export class TelegramClient {
   private handleEmailReply() {
     return async (ctx: Context) => {
       if (!ctx.message || typeof (ctx.message as any).text !== 'string') {
-      await ctx.reply('❌ Please send a text message.');
-      return;
-    }
+        await ctx.reply('❌ Please send a text message.');
+        return;
+      }
 
       const text = (ctx.message as any).text.trim();
       const telegramId = ctx.from?.id;

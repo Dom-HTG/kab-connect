@@ -2,62 +2,60 @@ import express from 'express';
 import * as bodyParser from 'body-parser';
 import { Request, Response, Application } from 'express';
 import dotenv from 'dotenv';
-// import twilio from 'twilio'; 
 import { TwilioClient } from './client/whatsapp-client';
 import { AppConfig } from './config/config';
 import { TelegramClient } from './client/telegram-client';
 import { PaymentService } from './payment/paymentService';
 import { PaymentController } from './payment/paymentController';
-// import { Context, Telegraf } from 'telegraf';
-// import { MongoService } from './store/database';
 import { PostgresService } from './store/database';
+
 dotenv.config();
 
 const app: Application = express();
 
-// App level middlewares.
+// App level middlewares
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Init App config.
+// Init App config
 const config = new AppConfig();
-const appConfig = config.serveConfig(); // configuration object to be passed around the entire application.
+const appConfig = config.serveConfig();
 
-// Init database with app config.
+// Init database
 const dbClient = new PostgresService(appConfig);
 dbClient.connect();
 
-// Init twilio client with app config.
+// Init Twilio client
 const twilioClient = new TwilioClient(appConfig);
 
-// Init telegram client with app config.
+// Init Telegram client
 const telegramClient = new TelegramClient(appConfig, dbClient);
 
 if (process.env.NODE_ENV === 'production') {
-    telegramClient.initWebhook(app, '/client', appConfig.server.appUrl); //start the telegram client with webhook.
+    telegramClient.initWebhook(app, '/client', appConfig.server.appUrl);
     console.log('✅ Telegram client is running in production mode...');
-}else {
-    telegramClient.initBot(); // start the telegram client in development mode.
+} else {
+    telegramClient.initBot();
     console.log('✅ Telegram client is running in development mode...');
-};
+}
 
-// DI for payment routes.
+// DI for payment routes
 const paymentService = new PaymentService(appConfig);
 const paymentController = new PaymentController(paymentService);
 
-// Register payment routes.
+// Register payment routes
 const paymentRouter = paymentController.registerRoutes(express.Router());
 app.use('/payment', paymentRouter);
 
-// Webhook to handle incoming messages from whatsapp.
+// Webhook to handle incoming messages from WhatsApp
 app.post('/client', (req: Request, res: Response) => {
    try {
         const body = req.body.Body.trim().toLowerCase();
         const from = req.body.From;
 
-        if (!body  || !from) {
+        if (!body || !from) {
             throw new Error('Missing required parameters: <body> or <from>');
-        };
+        }
 
         const onboardText = `
             👋 Welcome to *Kab Connect*!
@@ -71,22 +69,49 @@ app.post('/client', (req: Request, res: Response) => {
         `;
 
         const helpText = `Help channel coming soon....`;
-
         const buyText = `Thank you for your interest! Click the link below to complete your purchase: https://xxxxxxxxxxx`;
 
-        if (body.toLowerCase() === 'buy') {
+        if (body === 'buy') {
             twilioClient.sendMessage(from, buyText, appConfig);
-        } else if (body.toLowerCase() === 'help') {
+        } else if (body === 'help') {
             twilioClient.sendMessage(from, helpText, appConfig);
         } else {
             twilioClient.sendMessage(from, onboardText, appConfig);
-        };
+        }
+        res.sendStatus(200);
    } catch (e: any) {
-    res.status(400).json({
-        message: "An error occurred while processing your request.",
-        error: e.message
-    });
-   };
+        res.status(400).json({
+            message: "An error occurred while processing your request.",
+            error: e.message
+        });
+   }
 });
 
-app.listen(appConfig.server.port, () => { console.log(`✅ Server is running on port ${config.port}...`) });
+// Start server
+const server = app.listen(appConfig.server.port, () => { 
+    console.log(`✅ Server is running on port ${appConfig.server.port}...`);
+});
+
+// ---- Graceful Shutdown ----
+const shutdown = async (signal: string) => {
+    console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
+    try {
+        // Stop Telegram bot
+        telegramClient.stopBot(signal);
+
+        // Close DB connection
+        await dbClient.disconnect();
+
+        // Close Express server
+        server.close(() => {
+            console.log('✅ HTTP server closed.');
+            process.exit(0);
+        });
+    } catch (err) {
+        console.error('❌ Error during shutdown:', err);
+        process.exit(1);
+    }
+};
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
