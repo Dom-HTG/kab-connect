@@ -2,13 +2,12 @@ import { Request, Response, Router } from 'express';
 import { PaymentService } from './paymentService';
 import { TransactionPayload } from '.';
 
-
 export class PaymentController {
   private readonly paystack: PaymentService;
 
   constructor(paystackClient: PaymentService) {
     this.paystack = paystackClient;
-  };
+  }
 
   public registerRoutes = (router: Router): Router => {
     router.post('/init', this.initialize);
@@ -22,12 +21,14 @@ export class PaymentController {
       const { email, amount } = req.body;
 
       if (!email || !amount) {
-        return res.status(400).json({ status: 'error', message: 'Email and amount are required.' });
-      };
+        return res
+          .status(400)
+          .json({ status: 'error', message: 'Email and amount are required.' });
+      }
 
       const payload: TransactionPayload = {
         email,
-        amount
+        amount,
       };
 
       const result = await this.paystack.initializeTransaction(payload);
