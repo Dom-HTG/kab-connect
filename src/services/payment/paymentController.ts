@@ -1,6 +1,8 @@
-import { Request, Response, Router } from 'express';
+import express, { Router } from 'express';
 import { PaymentService } from './paymentService';
 import { TransactionPayload } from '.';
+import { ApiError } from '../../internal/error';
+import { BadRequestError } from '../../internal/error';
 
 export class PaymentController {
   private readonly paystack: PaymentService;
@@ -16,15 +18,16 @@ export class PaymentController {
     return router;
   };
 
-  public initialize = async (req: Request, res: Response) => {
+  public initialize = async (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
     try {
       const { email, amount } = req.body;
 
-      if (!email || !amount) {
-        return res
-          .status(400)
-          .json({ status: 'error', message: 'Email and amount are required.' });
-      }
+      if (!email || !amount)
+        throw new BadRequestError('Email and amount are required');
 
       const payload: TransactionPayload = {
         email,
@@ -34,17 +37,21 @@ export class PaymentController {
       const result = await this.paystack.initializeTransaction(payload);
       res.status(200).json({ status: 'success', data: result });
     } catch (err: any) {
-      res.status(500).json({ status: 'error', message: err.message });
+      next(err);
     }
   };
 
-  public verify = async (req: Request, res: Response) => {
+  public verify = async (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
     try {
       const { reference } = req.params;
       const result = await this.paystack.verifyTransaction(reference);
       res.status(200).json({ status: 'success', data: result });
     } catch (err: any) {
-      res.status(500).json({ status: 'error', message: err.message });
+      next(err);
     }
   };
 }

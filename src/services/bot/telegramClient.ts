@@ -30,8 +30,8 @@ export class TelegramClient {
     console.log('✅ Telegram commands registered successfully...');
   }
 
-  /** Launch bot with polling */
-  public initBot() {
+  /** Launch bot with polling (for development) */
+  public initBotDev() {
     this.registerCommands();
     this.bot
       .launch()
@@ -40,7 +40,7 @@ export class TelegramClient {
   }
 
   /** Launch bot with webhook (for production) */
-  public initWebhook(
+  public initBotProd(
     app: Application,
     webhookPath: string,
     webhookUrl: string,

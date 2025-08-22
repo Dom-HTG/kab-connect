@@ -8,12 +8,16 @@ export class PostgresService {
   constructor(config: Configs) {
     this.dataSource = new DataSource({
       type: 'postgres',
-      url: config.db.connString,
-      ssl: {
-        rejectUnauthorized:
-          process.env.NODE_ENV === 'production' ? false : true,
-      },
-      synchronize: false,
+      host: config.db.dbHost, // Docker Compose service name
+      port: config.db.dbPort ? parseInt(config.db.dbPort, 10) : 5432,
+      username: config.db.dbUser,
+      password: config.db.dbPassword,
+      database: config.db.dbName,
+      ssl:
+        process.env.NODE_ENV === 'production'
+          ? { rejectUnauthorized: false }
+          : undefined,
+      synchronize: true,
       logging: ['error', 'warn'],
       entities: [User],
     });
@@ -28,7 +32,7 @@ export class PostgresService {
       await this.dataSource.initialize();
       console.log('✅ PostgreSQL connected successfully...');
     } catch (error: any) {
-      console.error('❌ Error connecting to PostgreSQL:', error.message);
+      console.error('❌ Error connecting to PostgreSQL:', error);
       process.exit(1);
     }
   }
@@ -39,7 +43,6 @@ export class PostgresService {
       console.log('✅ PostgreSQL disconnected successfully...');
     } catch (error: any) {
       console.error('❌ Error disconnecting from PostgreSQL:', error.message);
-      process.exit(1);
     }
   }
 }

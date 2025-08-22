@@ -23,10 +23,10 @@ import { expressApp } from './server';
   const telegramClient = new TelegramClient(appConfig, dbClient);
 
   if (process.env.NODE_ENV === 'production') {
-    telegramClient.initWebhook(expressApp, '/client', appConfig.server.appUrl);
+    telegramClient.initBotProd(expressApp, '/client', appConfig.server.appUrl);
     console.log('✅ Telegram client is running in production mode...');
   } else {
-    telegramClient.initBot();
+    telegramClient.initBotDev();
     console.log('✅ Telegram client is running in development mode...');
   }
 
