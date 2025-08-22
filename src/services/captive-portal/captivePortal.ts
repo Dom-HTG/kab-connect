@@ -23,12 +23,12 @@ export class CaptivePortalService {
     this.voucherManager = new VoucherManager();
     this.sessionManager = new SessionManager();
 
-    console.log(
-      '✅ Captive Portal Service is ready ...',
-    );
+    console.log('✅ Captive Portal Service is ready ...');
   }
 
-  private requireUserInfo(userRequestObject: express.Request): Partial<UserDTO> {
+  private requireUserInfo(
+    userRequestObject: express.Request,
+  ): Partial<UserDTO> {
     const userInfo: Partial<UserDTO> = {
       id: uniqueID(),
       userIp: userRequestObject.query.ip as string,
@@ -44,69 +44,88 @@ export class CaptivePortalService {
       Login to kab-connect internet service.
       This will register the users' session as active.
     */
-    router.post('/login', (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      try {
-        /* Extract user info from request */
-        const userInfo = this.requireUserInfo(req);
-        const { voucherCode } = req.body;
+    router.post(
+      '/login',
+      (
+        req: express.Request,
+        res: express.Response,
+        next: express.NextFunction,
+      ) => {
+        try {
+          /* Extract user info from request */
+          const userInfo = this.requireUserInfo(req);
+          const { voucherCode } = req.body;
 
-        /* Validate userInfo, voucherCode.. */
-        if (!voucherCode || !userInfo.telegramId) { 
-          throw new ApiError(400, '❌ Missing required parameters: <voucherCode> or <userId>');
-          return;
-        };
-
-        /* validate the voucherCode */
-        if (this.validateVoucher(voucherCode) === false) {
-          throw new ApiError(400, '❌ Invalid or expired voucher.');
-          return;
-        } else {
-          /* start the session */
-          if (this.startSession(userInfo.id as string, voucherCode)) {
-            const payload: ApiResponseDTO = {
-              success: true,
-              status_code: 200,
-              message: '✅ Access granted! You are connected.',
-            }
-            SuccessResponse(res, payload);
-          } else {
-            throw new ApiError(400, '❌ Invalid voucher or max connections reached.');
+          /* Validate userInfo, voucherCode.. */
+          if (!voucherCode || !userInfo.telegramId) {
+            throw new ApiError(
+              400,
+              '❌ Missing required parameters: <voucherCode> or <userId>',
+            );
+            return;
           }
-        };
-      } catch (e) {
-        next(e);
-      };
-    });
+
+          /* validate the voucherCode */
+          if (this.validateVoucher(voucherCode) === false) {
+            throw new ApiError(400, '❌ Invalid or expired voucher.');
+            return;
+          } else {
+            /* start the session */
+            if (this.startSession(userInfo.id as string, voucherCode)) {
+              const payload: ApiResponseDTO = {
+                success: true,
+                status_code: 200,
+                message: '✅ Access granted! You are connected.',
+              };
+              SuccessResponse(res, payload);
+            } else {
+              throw new ApiError(
+                400,
+                '❌ Invalid voucher or max connections reached.',
+              );
+            }
+          }
+        } catch (e) {
+          next(e);
+        }
+      },
+    );
 
     /* 
       Logout of kab-connect internet service.
       This will terminate user session allowing other users to login under the 200-person user cap.
     */
-     router.post('/logout', (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      try {
-        /* Extract user info from request */
-        const userInfo = this.requireUserInfo(req);
+    router.post(
+      '/logout',
+      (
+        req: express.Request,
+        res: express.Response,
+        next: express.NextFunction,
+      ) => {
+        try {
+          /* Extract user info from request */
+          const userInfo = this.requireUserInfo(req);
 
-        /* Validate userInfo */
-        if (!userInfo.id) {
-          throw new ApiError(400, '❌ Missing required parameter: <userId>');
+          /* Validate userInfo */
+          if (!userInfo.id) {
+            throw new ApiError(400, '❌ Missing required parameter: <userId>');
+          }
+
+          /* End the session */
+          this.endSession(userInfo.id as string);
+
+          const payload: ApiResponseDTO = {
+            success: true,
+            status_code: 200,
+            message: '🔌 Session ended.',
+          };
+          SuccessResponse(res, payload);
+        } catch (e) {
+          next(e);
         }
-
-        /* End the session */
-        this.endSession(userInfo.id as string);
-
-        const payload: ApiResponseDTO = {
-          success: true,
-          status_code: 200,
-          message: '🔌 Session ended.',
-        };
-        SuccessResponse(res, payload);
-      } catch (e) {
-        next(e);
-      }
-    });
+      },
+    );
   }
-
 
   /* Captive Portal Service Methods */
   validateVoucher(voucherCode: string): boolean {
@@ -124,7 +143,7 @@ export class CaptivePortalService {
       return true;
     } catch {
       return false;
-    };
+    }
   }
 
   endSession(sessionId: string): void {

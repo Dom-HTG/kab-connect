@@ -10,7 +10,7 @@ import { errorHandler } from './internal/error';
 export var expressApp: express.Application = express();
 
 export class ExpressServer {
-  private app: express.Application
+  private app: express.Application;
   private httpServer: any;
   private captivePortal: CaptivePortalService;
   private readonly conf: Configs;
@@ -25,7 +25,6 @@ export class ExpressServer {
     dbClient: PostgresService,
     paymentController: PaymentController,
   ) {
-
     this.app = expressApp;
 
     this.registerCors();
@@ -44,7 +43,7 @@ export class ExpressServer {
 
     /* Handle errors globally */
     this.registerErrorHandling();
-  
+
     this.listen();
 
     // Graceful shutdown.
@@ -54,9 +53,9 @@ export class ExpressServer {
 
   private registerCors() {
     const corsConfig = {
-      origin: '*', 
+      origin: '*',
       methods: ['GET', 'POST'],
-      crendentials: true
+      crendentials: true,
     };
 
     this.app.use(cors(corsConfig));
@@ -70,9 +69,16 @@ export class ExpressServer {
   }
 
   private registerErrorHandling() {
-    this.app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-      errorHandler(err, req, res, next);
-    });
+    this.app.use(
+      (
+        err: any,
+        req: express.Request,
+        res: express.Response,
+        next: express.NextFunction,
+      ) => {
+        errorHandler(err, req, res, next);
+      },
+    );
   }
 
   private registerCaptivePortalRoutes() {
@@ -111,6 +117,6 @@ export class ExpressServer {
     } catch (err) {
       console.error('❌ Error during shutdown:', err);
       process.exit(1);
-    };
+    }
   }
 }

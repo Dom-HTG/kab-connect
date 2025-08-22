@@ -10,7 +10,13 @@ export class ApiError extends Error {
   public errorPayload?: any | undefined;
   public stack?: string | undefined;
 
-  constructor(statusCode: number, message: string, errorPayload?: any , isOperational = true, stack = "") {
+  constructor(
+    statusCode: number,
+    message: string,
+    errorPayload?: any,
+    isOperational = true,
+    stack = '',
+  ) {
     super(message);
 
     this.statusCode = statusCode;
@@ -23,38 +29,42 @@ export class ApiError extends Error {
       Error.captureStackTrace(this, this.constructor);
     }
   }
-};
-
+}
 
 /* Error instnces for specific error types */
 
 export class NotFoundErrror extends ApiError {
-  constructor(message = "NOT FOUND", errorPayload?: any) {
+  constructor(message = 'NOT FOUND', errorPayload?: any) {
     super(404, message, errorPayload, true);
   }
 }
 
 export class BadRequestError extends ApiError {
-  constructor(message = "BAD REQUEST", errorPayload?: any) {
+  constructor(message = 'BAD REQUEST', errorPayload?: any) {
     super(400, message, errorPayload, true);
   }
 }
 
 export class UnauthorizedError extends ApiError {
-  constructor(message = "UNAUTHORIZED", errorPayload?: any) {
+  constructor(message = 'UNAUTHORIZED', errorPayload?: any) {
     super(401, message, errorPayload, true);
   }
 }
 
 export class InternalServerError extends ApiError {
-  constructor(message = "INTERNAL SERVER ERROR", errorPayload?: any) {
+  constructor(message = 'INTERNAL SERVER ERROR', errorPayload?: any) {
     super(500, message, errorPayload, true);
   }
 }
 
 /* Error handling middleware */
 
-export function errorHandler(err: ApiError, req: express.Request, res: express.Response, _next: express.NextFunction) {
+export function errorHandler(
+  err: ApiError,
+  req: express.Request,
+  res: express.Response,
+  _next: express.NextFunction,
+) {
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
   const errorPayload = err.errorPayload || {};
@@ -68,7 +78,7 @@ export function errorHandler(err: ApiError, req: express.Request, res: express.R
       statusCode,
       errorPayload,
     });
-  };
+  }
 
   if (err instanceof ApiError) {
     res.status(statusCode).json({
@@ -80,9 +90,7 @@ export function errorHandler(err: ApiError, req: express.Request, res: express.R
   } else {
     return res.status(500).json({
       success: false,
-      message: 'An unexpected error occurred.', 
+      message: 'An unexpected error occurred.',
     });
-  };
-  
-};
-
+  }
+}
