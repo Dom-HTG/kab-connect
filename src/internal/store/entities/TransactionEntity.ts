@@ -5,25 +5,41 @@ import {
   ManyToOne,
   CreateDateColumn,
 } from 'typeorm';
-import { User } from './userEntity';
+import { TransactionStatus } from '../../../services/payment/paymentRepository';
 
 @Entity('transactions')
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @ManyToOne(() => User, (user) => user.transactions)
-  user!: User;
-
-  @Column('decimal', { precision: 12, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+  })
   amount!: number; // stored in naira or smallest unit
 
-  @Column()
-  status!: 'success' | 'failed' | 'pending';
+  @Column({ length: 3, default: 'NGN' })
+  currency!: string;
 
   @Column()
-  reference!: string; // paystack/stripe reference
+  email!: string;
 
-  @CreateDateColumn()
-  createdAt?: Date;
-}
+  @Column({
+    type: 'enum',
+    enum: TransactionStatus,
+    default: TransactionStatus.INITIATED,
+  })
+  status!: string;
+
+  @Column({
+    nullable: true,
+    name: 'paystack_reference',
+  })
+  reference!: string;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt!: Date;
+
+  @CreateDateColumn({ name: 'updated_at' })
+  updatedAt!: Date;
+};

@@ -108,23 +108,26 @@ export class TelegramClient {
         return;
       }
 
-      const existingUser = await this.dbClient.getRepository.findOne({
-        where: { telegramId },
+      // Look for an existing session for this Telegram ID
+      const existingSession = await this.dbClient.getSessionRepository().findOne({
+        where: { telegramId, status: 'active' },
       });
 
-      if (!existingUser) {
+      if (!existingSession) {
         await ctx.reply(
           '📧 Please enter your email address to proceed with payment:',
           Markup.forceReply(),
         );
-        const newUser = this.dbClient.getRepository.create({
+        // Create a new session with empty email, status 'active'
+        const newSession = this.dbClient.getSessionRepository().create({
           telegramId,
           email: '',
+          status: 'active',
         });
-        await this.dbClient.getRepository.save(newUser);
-        console.log(`✅ New user created with Telegram ID: ${telegramId}`);
-      } else if (existingUser.email) {
-        await this.initiatePayment(ctx, existingUser.email);
+        await this.dbClient.getSessionRepository().save(newSession);
+        console.log(`✅ New session created for Telegram ID: ${telegramId}`);
+      } else if (existingSession.email) {
+        await this.initiatePayment(ctx, existingSession.email);
       } else {
         await ctx.reply(
           '📧 Please enter your email address to proceed with payment:',
@@ -145,10 +148,13 @@ export class TelegramClient {
       const telegramId = ctx.from?.id;
       if (!telegramId) return;
 
-      const user = await this.dbClient.getRepository.findOne({
-        where: { telegramId },
+      // Find active session for this Telegram ID
+      const sessionRepo = this.dbClient.getSessionRepository();
+      const session = await sessionRepo.findOne({
+        where: { telegramId, status: 'active' },
       });
-      if (user && !user.email) {
+
+      if (session && !session.email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(text)) {
           await ctx.reply(
@@ -157,8 +163,8 @@ export class TelegramClient {
           return;
         }
 
-        user.email = text;
-        await this.dbClient.getRepository.save(user);
+        session.email = text;
+        await sessionRepo.save(session);
         await ctx.reply('✅ Email saved! Generating payment link...');
         await this.initiatePayment(ctx, text);
       }

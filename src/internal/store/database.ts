@@ -1,6 +1,7 @@
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Configs } from '../../config/config';
-import { User } from './userEntity';
+import { Transaction } from './entities/TransactionEntity';
+import { Session } from './entities/sessionEntity';
 
 export class PostgresService {
   private dataSource: DataSource;
@@ -17,14 +18,33 @@ export class PostgresService {
         process.env.NODE_ENV === 'production'
           ? { rejectUnauthorized: false }
           : undefined,
-      synchronize: true,
+      synchronize: process.env.NODE_ENV === 'development' ? true : false,
       logging: ['error', 'warn'],
-      entities: [User],
+      entities: [Transaction],
+
+      /* Pooling options */
+      extra: {
+        max: 10, // maximum number of clients in the pool
+        idleTimeoutMillis: 30000, // close idle clients after 30 seconds
+        connectionTimeoutMillis: 2000, // return an error after 2 seconds if connection could not be established
+      },
     });
+  };
+
+  public getDataSource(): DataSource {
+    return this.dataSource;
   }
 
-  public get getRepository() {
-    return this.dataSource.getRepository(User);
+  // public getUserRepository(): Repository<User> {
+  //   return this.dataSource.getRepository(User);
+  // }
+
+  public getPaymentRepository(): Repository<Transaction> {
+    return this.dataSource.getRepository(Transaction);
+  }
+
+  public getSessionRepository(): Repository<Session> {
+    return this.dataSource.getRepository(Session);
   }
 
   public async connect(): Promise<void> {
