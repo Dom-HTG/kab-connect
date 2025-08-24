@@ -3,6 +3,7 @@ import { AppConfig } from './config/config';
 import { ExpressServer } from './server';
 import { CaptivePortalService } from './services/captive-portal/captivePortal';
 import { TelegramClient } from './services/bot/telegramClient';
+import { PaymentRepository } from './services/payment/paymentRepository';
 import { PaymentService } from './services/payment/paymentService';
 import { PaymentController } from './services/payment/paymentController';
 import { PostgresService } from './internal/store/database';
@@ -32,7 +33,11 @@ import { expressApp } from './server';
 
   // Captive portal and payment DI
   const captivePortal = new CaptivePortalService();
-  const paymentService = new PaymentService(appConfig);
+
+  /* Payment DI */
+  const dataSource = dbClient.getDataSource();
+  const paymentRepository = new PaymentRepository(dbClient, dataSource);
+  const paymentService = new PaymentService(appConfig, paymentRepository);
   const paymentController = new PaymentController(paymentService);
 
   // Initialize express server.
