@@ -109,9 +109,11 @@ export class TelegramClient {
       }
 
       // Look for an existing session for this Telegram ID
-      const existingSession = await this.dbClient.getSessionRepository().findOne({
-        where: { telegramId, status: 'active' },
-      });
+      const existingSession = await this.dbClient
+        .getSessionRepository()
+        .findOne({
+          where: { telegramId, status: 'active' },
+        });
 
       if (!existingSession) {
         await ctx.reply(

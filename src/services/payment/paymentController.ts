@@ -1,4 +1,5 @@
 import express from 'express';
+import pino from 'pino';
 import { TransactionPayload } from '.';
 import { BadRequestError } from '../../internal/error';
 import { IPaymentService } from './paymentService';
@@ -20,7 +21,13 @@ import { IPaymentService } from './paymentService';
 // }
 
 export class PaymentController {
-  constructor(private readonly paystackClient: IPaymentService) {}
+  private logs: pino.Logger;
+  constructor(
+    private readonly paystackClient: IPaymentService,
+    logger: pino.Logger,
+  ) {
+    this.logs = logger;
+  }
 
   public registerRoutes = (router: express.Router): express.Router => {
     router.post('/init', this.initialize);
@@ -37,8 +44,14 @@ export class PaymentController {
     try {
       const { email, amount } = req.body;
 
-      if (!email || !amount)
-        throw new BadRequestError('Email and amount are required');
+      if (!email || !amount) {
+        this.logs.error(
+          'Missing required parameters: <email:string> or <amount:number>...[CATCH_PAYMENT_CONTROLLER_LEVEL]',
+        );
+        throw new BadRequestError(
+          'Missing required parameters: <email:string> or <amount:number>',
+        );
+      }
 
       const payload: TransactionPayload = {
         email,
@@ -48,6 +61,7 @@ export class PaymentController {
       const result = await this.paystackClient.initializeTransaction(payload);
       res.status(200).json({ status: 'success', data: result });
     } catch (err: any) {
+      this.logs.error(err, 'Error initializing transaction...');
       next(err);
     }
   };
@@ -59,19 +73,26 @@ export class PaymentController {
   ) => {
     try {
       const { reference } = req.params;
-      if (!reference)
-        throw new BadRequestError(
-          'Missing required parameter <reference:string>',
+      if (!reference) {
+        this.logs.error(
+          'Missing required parameter: <reference>...[CATCH_PAYMENT_CONTROLLER_LEVEL]',
         );
+        throw new BadRequestError('Missing required parameter: <reference>');
+      }
+
       const result = await this.paystackClient.verifyTransaction(reference);
       res.status(200).json({ status: 'success', data: result });
     } catch (err: any) {
-      console.error('Transaction verification failed..')
+      this.logs.error(err, 'Error verifying transaction...');
       next(err);
     }
   };
 
-  handleWebhook = async (req: express.Request, res: express.Response): Promise<void> => {
+  handleWebhook = async (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ): Promise<void> => {
     try {
       const signature = req.headers['x-paystack-signature'] as string;
       const payload = req.body;
@@ -79,11 +100,8 @@ export class PaymentController {
       await this.paystackClient.handleWebhook(payload, signature);
 
       res.status(200).json({ success: true, message: 'Webhook processed' });
-
     } catch (error) {
-      console.error('Webhook processing failed', error);
-      // Still return 200 to Paystack so it doesn't retry excessively for signature errors
-      res.status(200).json({ success: false, message: 'Webhook processing failed' });
+      next(error);
     }
   };
 }

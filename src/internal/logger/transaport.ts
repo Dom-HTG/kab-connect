@@ -16,7 +16,7 @@ export const createConsoleTransport = (): pino.TransportTargetOptions => {
 /* transport combined logs to console */
 export const createFileTransport = (): pino.TransportTargetOptions => {
   const logsDir = process.env.LOGS_DIR || 'logs';
-  
+
   return {
     target: 'pino/file',
     level: 'info',
@@ -30,7 +30,7 @@ export const createFileTransport = (): pino.TransportTargetOptions => {
 /* transport error logs to logs/error.log */
 export const createErrorFileTransport = (): pino.TransportTargetOptions => {
   const logsDir = process.env.LOGS_DIR || 'logs';
-  
+
   return {
     target: 'pino/file',
     level: 'error',

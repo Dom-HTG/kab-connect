@@ -42,4 +42,4 @@ export class Transaction {
 
   @CreateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
-};
+}

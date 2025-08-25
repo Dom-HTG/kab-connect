@@ -29,7 +29,7 @@ export class PostgresService {
         connectionTimeoutMillis: 2000, // return an error after 2 seconds if connection could not be established
       },
     });
-  };
+  }
 
   public getDataSource(): DataSource {
     return this.dataSource;
