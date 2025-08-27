@@ -59,7 +59,7 @@ export class PaymentController {
       };
 
       const result = await this.paystackService.initializeTransaction(payload);
-      res.status(200).json({ status: 'success', data: result });
+      res.status(200).json({ status: 'success', authorization_url: result.data.authorization_url });
     } catch (err: any) {
       this.logs.error(err, 'Error initializing transaction...');
       next(err);

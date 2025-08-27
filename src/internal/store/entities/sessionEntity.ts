@@ -15,7 +15,7 @@ export class Session {
   email!: string; // Store user email directly
 
   @Column()
-  telegramId!: number; // Store Telegram user ID directly
+  telegramId!: string; // Store Telegram user ID directly
 
   @Column()
   status!: 'active' | 'completed'; // live vs ended session

@@ -43,8 +43,9 @@ export class TelegramClient {
   }
 
   /** Launch bot with polling (for development) */
-  public initBotDev() {
+  public async initBotDev() {
     this.registerCommands();
+    await this.bot.telegram.deleteWebhook();
     this.bot
       .launch()
       .then(() => console.log('✅ Telegram bot is running...'))
@@ -113,12 +114,18 @@ export class TelegramClient {
   private payAction() {
     return async (ctx: Context) => {
       await ctx.answerCbQuery();
-      const telegramId = ctx.from?.id;
+      const id = ctx.from?.id;
 
-      if (!telegramId) {
-        await ctx.reply('❌ Could not detect your Telegram ID.');
+      if (!id) {
+        this.logs.warn('❌ TelegramId not received');
+        await ctx.reply(
+          '❌ Could not retrieve your Telegram ID. Try again later...',
+        );
         return;
       }
+
+      const telegramId: string =
+        id.toString(); /* convert telegram id to string */
 
       // Look for an existing session for this Telegram ID
       const existingSession = await this.dbClient
@@ -159,8 +166,18 @@ export class TelegramClient {
       }
 
       const text = (ctx.message as any).text.trim();
-      const telegramId = ctx.from?.id;
-      if (!telegramId) return;
+      const id = ctx.from?.id;
+
+      if (!id) {
+        this.logs.warn('❌ TelegramId not received');
+        await ctx.reply(
+          '❌ Could not retrieve your Telegram ID. Try again later...',
+        );
+        return;
+      }
+
+      const telegramId: string =
+        id.toString(); /* convert telegram id to string */
 
       // Find active session for this Telegram ID
       const sessionRepo = this.dbClient.getSessionRepository();
@@ -198,23 +215,26 @@ export class TelegramClient {
           metadata: { telegramId },
         },
       );
+      this.logs.info(data, 'Payment intent response');
 
-      if (data.status === 'success') {
+      if (data.status === "success") {
         await ctx.reply(
           `💳 Click below to complete your ₦500 payment:`,
           Markup.inlineKeyboard([
-            Markup.button.url('🚀 Pay Now', data.data.authorization_url),
-            Markup.button.callback(
-              '✅ I’ve Paid, Generate Login',
-              'generate_login',
-            ),
+            [
+              Markup.button.url('🚀 Pay Now', data.authorization_url),
+              Markup.button.callback(
+                '✅ I’ve Paid',
+                'generate_login',
+              ),
+            ],
           ]),
         );
       } else {
-        await ctx.reply(`❌ Payment init failed: ${data.message}`);
+        await ctx.reply(`❌ Payment init failed: ${data}`);
       }
     } catch (e: any) {
-      this.logs.error(`❌ Payment error: ${e.message}`);
+      this.logs.error(e, `❌ Payment init error`);
       await ctx.reply('❌ Could not initiate payment. Try again later.');
     }
   }

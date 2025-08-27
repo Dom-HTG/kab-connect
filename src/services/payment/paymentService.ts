@@ -10,7 +10,7 @@ import { Transaction } from '../../internal/store/entities/TransactionEntity';
 export interface IPaymentService {
   getPaystackClient(): Promise<AxiosInstance>;
   mountHeaders(): any;
-  initializeTransaction(payload: TransactionPayload): Promise<Transaction>;
+  initializeTransaction(payload: TransactionPayload): Promise<InitializeTransactionResponse>;
   verifyTransaction(reference: string): Promise<Transaction>;
   handleWebhook(payload: any, signature: string): Promise<void>;
 }
@@ -58,7 +58,7 @@ export class PaymentService implements IPaymentService {
 
   async initializeTransaction(
     payload: TransactionPayload,
-  ): Promise<Transaction> {
+  ): Promise<InitializeTransactionResponse> {
     try {
       this.logs.info(payload, '⏳ Initializing payment...');
 
@@ -97,7 +97,7 @@ export class PaymentService implements IPaymentService {
       });
 
       this.logs.info(paymentIntent, '✅ Payment data saved successfully...');
-      return paymentIntent;
+      return responsePayload;
     } catch (e) {
       this.logs.info(e, '❌ Payment initialization failed...');
       throw new Error('Payment initialization failed...');
