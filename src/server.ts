@@ -6,6 +6,7 @@ import { PostgresService } from './internal/store/database';
 import { PaymentController } from './services/payment/paymentController';
 import { Configs } from './config/config';
 import { errorHandler } from './internal/error';
+import pino from 'pino';
 
 export var expressApp: express.Application = express();
 
@@ -16,6 +17,7 @@ export class ExpressServer {
   private readonly conf: Configs;
   private telegram: TelegramClient;
   private db: PostgresService;
+  private logs: pino.Logger;
   private paymentController: PaymentController;
 
   constructor(
@@ -24,6 +26,7 @@ export class ExpressServer {
     telegramClient: TelegramClient,
     dbClient: PostgresService,
     paymentController: PaymentController,
+    logger: pino.Logger,
   ) {
     this.app = expressApp;
 
@@ -33,6 +36,7 @@ export class ExpressServer {
     this.conf = config;
     this.db = dbClient;
     this.paymentController = paymentController;
+    this.logs = logger;
 
     this.telegram = telegramClient;
 
@@ -95,27 +99,29 @@ export class ExpressServer {
 
   listen() {
     this.httpServer = this.app.listen(this.conf.server.port, () => {
-      console.log(`Captive portal running on port ${this.conf.server.port}`);
+      this.logs.info(`Express server is running on port ${this.conf.server.port}`);
     });
   }
 
   // ---- Graceful Shutdown ----
   async shutdown(signal: string) {
-    console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
+    this.logs.info(`Received ${signal}. Shutting down...`);
     try {
       // Stop Telegram bot
       this.telegram.stopBot(signal);
+      this.logs.info('✅ Telegram bot stopped.');
 
       // Close DB connection
       await this.db.disconnect();
+      this.logs.info('✅ Database connection closed.');
 
       // Close Express server
       this.httpServer.close(() => {
-        console.log('✅ HTTP server closed.');
+        this.logs.info('✅ HTTP server closed.');
         process.exit(0);
       });
     } catch (err) {
-      console.error('❌ Error during shutdown:', err);
+      this.logs.error(err, '❌ Error during shutdown');
       process.exit(1);
     }
   }

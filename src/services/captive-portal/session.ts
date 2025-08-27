@@ -1,3 +1,5 @@
+import pino from 'pino';
+
 export interface SessionPayload {
   sessionId: string;
   voucherCode: string;
@@ -7,9 +9,11 @@ export interface SessionPayload {
 }
 export class SessionManager {
   private sessions: Map<string, any>;
+  private logs: pino.Logger;
 
-  constructor() {
+  constructor(logger: pino.Logger) {
     this.sessions = new Map();
+    this.logs = logger;
   }
 
   /** Create a new session */
@@ -18,7 +22,7 @@ export class SessionManager {
       throw new Error(`Session for user ${userId} already exists.`);
     }
     this.sessions.set(userId, data);
-    console.log(`Session created for user ${userId}`);
+    this.logs.info(`Session created for user ${userId}`);
   }
 
   /** Get session data */
@@ -29,10 +33,10 @@ export class SessionManager {
   /** Update session data */
   public updateSession(userId: string, data: any) {
     if (!this.sessions.has(userId)) {
-      throw new Error(`No session found for user ${userId}`);
+      this.logs.error(`No session found for user ${userId}`);
     }
     this.sessions.set(userId, { ...this.sessions.get(userId), ...data });
-    console.log(`Session updated for user ${userId}`);
+    this.logs.info(`Session updated for user ${userId}`);
   }
 
   /** Delete a session */
@@ -41,7 +45,7 @@ export class SessionManager {
       throw new Error(`No session found for user ${userId}`);
     }
     this.sessions.delete(userId);
-    console.log(`Session deleted for user ${userId}`);
+    this.logs.info(`Session deleted for user ${userId}`);
   }
 
   /** Get all active sessions */
@@ -59,6 +63,6 @@ export class SessionManager {
     }
     session.active = false;
     this.sessions.set(userId, session);
-    console.log(`Session expired for user ${userId}`);
+    this.logs.info(`Session expired for user ${userId}`);
   }
 }

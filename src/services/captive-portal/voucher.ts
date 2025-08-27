@@ -1,4 +1,5 @@
 import { SessionPayload } from './session';
+import pino from 'pino';
 
 export interface VoucherPayload {
   code: string;
@@ -11,10 +12,12 @@ export interface VoucherPayload {
 }
 
 export class VoucherManager {
+  private logger: pino.Logger;
   private vouchers: Map<string, VoucherPayload>;
   private sessions: Map<string, SessionPayload>;
 
-  constructor() {
+  constructor(logger: pino.Logger) {
+    this.logger = logger;
     this.vouchers = new Map();
     this.sessions = new Map();
   }
@@ -54,6 +57,7 @@ export class VoucherManager {
     ip?: string,
   ): SessionPayload {
     if (!this.validateVoucher(voucherCode)) {
+      this.logger.error(`Invalid or expired voucher: ${voucherCode}`);
       throw new Error('Invalid or expired voucher.');
     }
 

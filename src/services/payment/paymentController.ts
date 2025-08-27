@@ -23,7 +23,7 @@ import { IPaymentService } from './paymentService';
 export class PaymentController {
   private logs: pino.Logger;
   constructor(
-    private readonly paystackClient: IPaymentService,
+    private readonly paystackService: IPaymentService,
     logger: pino.Logger,
   ) {
     this.logs = logger;
@@ -58,7 +58,7 @@ export class PaymentController {
         amount,
       };
 
-      const result = await this.paystackClient.initializeTransaction(payload);
+      const result = await this.paystackService.initializeTransaction(payload);
       res.status(200).json({ status: 'success', data: result });
     } catch (err: any) {
       this.logs.error(err, 'Error initializing transaction...');
@@ -80,7 +80,7 @@ export class PaymentController {
         throw new BadRequestError('Missing required parameter: <reference>');
       }
 
-      const result = await this.paystackClient.verifyTransaction(reference);
+      const result = await this.paystackService.verifyTransaction(reference);
       res.status(200).json({ status: 'success', data: result });
     } catch (err: any) {
       this.logs.error(err, 'Error verifying transaction...');
@@ -97,7 +97,7 @@ export class PaymentController {
       const signature = req.headers['x-paystack-signature'] as string;
       const payload = req.body;
 
-      await this.paystackClient.handleWebhook(payload, signature);
+      await this.paystackService.handleWebhook(payload, signature);
 
       res.status(200).json({ success: true, message: 'Webhook processed' });
     } catch (error) {

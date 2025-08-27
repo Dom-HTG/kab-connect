@@ -4,16 +4,28 @@ import { Configs } from '../../config/config';
 import { Application } from 'express';
 import axios from 'axios';
 import { PostgresService } from '../../internal/store/database';
+import pino from 'pino';
 
 export class TelegramClient {
   private bot: Telegraf<Context>;
+  private logs: pino.Logger;
 
   constructor(
     public readonly config: Configs,
     private readonly dbClient: PostgresService,
+    private logger: pino.Logger,
   ) {
+    this.logs = logger;
     this.bot = new Telegraf(config.telegram.telegramToken);
-    console.log('Launching Telegram Bot...');
+    if (!config.telegram.telegramToken) {
+      this.logs.error(
+        'Missing Required config variable <telegram_token: string>...[CATCH_TELEGRAM_CLIENT_LEVEL]',
+      );
+      throw new Error(
+        'Missing Required config variable <telegram_token: string>...',
+      );
+    }
+    this.logs.info('✅ Telegram Client is ready...');
   }
 
   /** Register bot commands and actions */
@@ -27,7 +39,7 @@ export class TelegramClient {
 
     this.bot.on(message('text'), this.handleEmailReply());
 
-    console.log('✅ Telegram commands registered successfully...');
+    this.logs.info('✅ Telegram commands registered successfully...');
   }
 
   /** Launch bot with polling (for development) */
@@ -49,19 +61,19 @@ export class TelegramClient {
 
     this.bot.telegram
       .setWebhook(`${webhookUrl}${webhookPath}`)
-      .then(() => console.log('✅ Webhook configured successfully...'))
-      .catch((e) => console.error(`❌ Failed to set webhook: ${e.message}`));
+      .then(() => this.logs.info('✅ Webhook configured successfully...'))
+      .catch((e) => this.logs.error(`❌ Failed to set webhook: ${e.message}`));
 
     app.use(webhookPath, this.bot.webhookCallback(webhookPath));
   }
 
   /** Graceful shutdown (no process.exit here) */
   public stopBot(reason?: string) {
-    console.log(
+    this.logs.info(
       `Stopping Telegram bot... ${reason ? `Reason: ${reason}` : ''}`,
     );
     this.bot.stop(reason || 'Bot stopped');
-    console.log('✅ Telegram bot stopped gracefully.');
+    this.logs.info('✅ Telegram bot stopped gracefully...');
   }
 
   /** Commands */
@@ -202,7 +214,7 @@ export class TelegramClient {
         await ctx.reply(`❌ Payment init failed: ${data.message}`);
       }
     } catch (e: any) {
-      console.error(`❌ Payment error: ${e.message}`);
+      this.logs.error(`❌ Payment error: ${e.message}`);
       await ctx.reply('❌ Could not initiate payment. Try again later.');
     }
   }

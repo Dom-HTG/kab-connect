@@ -8,6 +8,7 @@ import { PaymentService } from './services/payment/paymentService';
 import { PaymentController } from './services/payment/paymentController';
 import { PostgresService } from './internal/store/database';
 import { expressApp } from './server';
+import { PinoLogger } from './internal/logger/pino.logger';
 
 (async () => {
   dotenv.config();
@@ -20,32 +21,38 @@ import { expressApp } from './server';
   const dbClient = new PostgresService(appConfig);
   await dbClient.connect();
 
+  // initialize logger.
+  const logger = new PinoLogger().getLogger();
+  
   // Init Telegram client
-  const telegramClient = new TelegramClient(appConfig, dbClient);
+  const telegramClient = new TelegramClient(appConfig, dbClient, logger);
+
 
   if (process.env.NODE_ENV === 'production') {
     telegramClient.initBotProd(expressApp, '/client', appConfig.server.appUrl);
-    console.log('✅ Telegram client is running in production mode...');
+    logger.info('✅ Telegram client is initialized in production mode.');
   } else {
     telegramClient.initBotDev();
-    console.log('✅ Telegram client is running in development mode...');
+    logger.info('✅ Telegram client is running in development mode.');
   }
 
   // Captive portal and payment DI
-  const captivePortal = new CaptivePortalService();
+  const captivePortal = new CaptivePortalService(logger);
 
   /* Payment DI */
   const dataSource = dbClient.getDataSource();
-  const paymentRepository = new PaymentRepository(dbClient, dataSource);
-  const paymentService = new PaymentService(appConfig, paymentRepository);
-  const paymentController = new PaymentController(paymentService);
+  const paymentRepository = new PaymentRepository(dbClient, dataSource, logger);
+  const paymentService = new PaymentService(appConfig, paymentRepository, logger);
+  const paymentController = new PaymentController(paymentService, logger);
 
   // Initialize express server.
+  // This will also register all routes and error handler.
   new ExpressServer(
     captivePortal,
     appConfig,
     telegramClient,
     dbClient,
     paymentController,
+    logger,
   );
 })();

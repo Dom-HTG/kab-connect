@@ -7,6 +7,7 @@
   - Designed to work behind a Starlink Wi‑Fi/Third party router (e.g, microTik) that performs the redirect
 */
 import express, { Application } from 'express';
+import pino from 'pino';
 import { VoucherManager } from './voucher';
 import { SessionManager } from './session';
 import { UserDTO } from '../../types/user';
@@ -19,9 +20,9 @@ export class CaptivePortalService {
   private sessionManager: SessionManager;
   private MAX_CONNECTIONS = 200;
 
-  constructor() {
-    this.voucherManager = new VoucherManager();
-    this.sessionManager = new SessionManager();
+  constructor(logger: pino.Logger) {
+    this.voucherManager = new VoucherManager(logger);
+    this.sessionManager = new SessionManager(logger);
 
     console.log('✅ Captive Portal Service is ready ...');
   }
