@@ -23,10 +23,9 @@ import { PinoLogger } from './internal/logger/pino.logger';
 
   // initialize logger.
   const logger = new PinoLogger().getLogger();
-  
+
   // Init Telegram client
   const telegramClient = new TelegramClient(appConfig, dbClient, logger);
-
 
   if (process.env.NODE_ENV === 'production') {
     telegramClient.initBotProd(expressApp, '/client', appConfig.server.appUrl);
@@ -42,7 +41,11 @@ import { PinoLogger } from './internal/logger/pino.logger';
   /* Payment DI */
   const dataSource = dbClient.getDataSource();
   const paymentRepository = new PaymentRepository(dbClient, dataSource, logger);
-  const paymentService = new PaymentService(appConfig, paymentRepository, logger);
+  const paymentService = new PaymentService(
+    appConfig,
+    paymentRepository,
+    logger,
+  );
   const paymentController = new PaymentController(paymentService, logger);
 
   // Initialize express server.

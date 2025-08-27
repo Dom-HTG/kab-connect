@@ -1,5 +1,6 @@
 import { DataSource, Repository } from 'typeorm';
 import { Configs } from '../../config/config';
+import { Metrics } from './entities/metricsEntity';
 import { Transaction } from './entities/TransactionEntity';
 import { Session } from './entities/sessionEntity';
 
@@ -9,7 +10,7 @@ export class PostgresService {
   constructor(config: Configs) {
     this.dataSource = new DataSource({
       type: 'postgres',
-      host: config.db.dbHost, // Docker Compose service name
+      host: config.db.dbHost ? config.db.dbHost : 'database', // Database service in docker-compose
       port: config.db.dbPort ? parseInt(config.db.dbPort, 10) : 5432,
       username: config.db.dbUser,
       password: config.db.dbPassword,
@@ -20,7 +21,7 @@ export class PostgresService {
           : undefined,
       synchronize: process.env.NODE_ENV === 'development' ? true : false,
       logging: ['error', 'warn'],
-      entities: [Transaction],
+      entities: [Transaction, Session, Metrics],
 
       /* Pooling options */
       extra: {

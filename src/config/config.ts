@@ -48,6 +48,8 @@ export class AppConfig {
 
   constructor() {
     // Load environment variables when the class is instantiated.
+    console.log('Loading application config...');
+    
     this.port = this.getenv('APP_PORT');
     this.appUrl = this.getenv('APP_URL');
     this.telegramToken = this.getenv('TELEGRAM_TOKEN');
@@ -58,6 +60,8 @@ export class AppConfig {
     this.dbName = this.getenv('POSTGRES_DB');
     this.dbHost = this.getenv('POSTGRES_HOST');
     this.dbPort = this.getenv('POSTGRES_PORT');
+
+    console.log('Application config load successful...');
   }
 
   private getenv(key: string): string {

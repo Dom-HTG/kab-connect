@@ -99,13 +99,21 @@ export class ExpressServer {
 
   listen() {
     this.httpServer = this.app.listen(this.conf.server.port, () => {
-      this.logs.info(`Express server is running on port ${this.conf.server.port}`);
+      this.logs.info(
+        `Express server is running on port ${this.conf.server.port}`,
+      );
     });
   }
 
   // ---- Graceful Shutdown ----
   async shutdown(signal: string) {
     this.logs.info(`Received ${signal}. Shutting down...`);
+
+    const timeout = setTimeout(() => {
+      this.logs.info('Forced shutdown initiated...');
+      process.exit(1);
+    }, 1000);
+
     try {
       // Stop Telegram bot
       this.telegram.stopBot(signal);
@@ -117,10 +125,12 @@ export class ExpressServer {
 
       // Close Express server
       this.httpServer.close(() => {
-        this.logs.info('✅ HTTP server closed.');
+        clearTimeout(timeout);
+        this.logs.info('✅ HTTP server closed. Shutdown complete');
         process.exit(0);
       });
     } catch (err) {
+      clearTimeout(timeout);
       this.logs.error(err, '❌ Error during shutdown');
       process.exit(1);
     }

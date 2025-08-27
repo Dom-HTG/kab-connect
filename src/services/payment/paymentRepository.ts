@@ -17,14 +17,6 @@ export interface ITransaction {
   updatedAt: Date;
 }
 
-export enum TransactionStatus {
-  INITIATED = 'initiated',
-  PENDING = 'pending',
-  SUCCESS = 'success',
-  FAILED = 'failed',
-  REFUNDED = 'refunded',
-}
-
 /* This contract defines all database level abstractions for the payment service */
 
 export interface IPaymentRepository {

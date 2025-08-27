@@ -2,10 +2,14 @@ services:
   database:
     image: postgres:16-alpine
     restart: always
+    container_name: kab-connect-db
+    environment:
+      - POSTGRES_USER=kab_user
+      - POSTGRES_PASSWORD=kab_password
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_log:/var/lib/postgresql/data
     ports:
-      - '2773:5432'
+      - "5432:5432"
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER}']
       interval: 10s
@@ -18,7 +22,7 @@ services:
     build:
       context: .
       dockerfile: dev.Dockerfile
-    container_name: kab-connect-local
+    container_name: kab-connect-app
     restart: always
     env_file: .env
     depends_on:
@@ -34,4 +38,4 @@ networks:
     driver: bridge
 
 volumes:
-  db_data:
+  db_log:

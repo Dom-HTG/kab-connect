@@ -5,7 +5,14 @@ import {
   ManyToOne,
   CreateDateColumn,
 } from 'typeorm';
-import { TransactionStatus } from '../../../services/payment/paymentRepository';
+
+export enum TransactionStatus {
+  INITIATED = 'initiated',
+  PENDING = 'pending',
+  SUCCESS = 'success',
+  FAILED = 'failed',
+  REFUNDED = 'refunded',
+}
 
 @Entity('transactions')
 export class Transaction {
